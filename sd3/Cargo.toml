@@ -1,0 +1,13 @@
+[package]
+name = "sd3"
+version = "0.1.0"
+authors = ["mwc10 <43445389+mwc10@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1.5"
+serde = "1.0.84"
+serde_derive = "1.0.84"
+log = "0.4.6"
+units = { path = "../units" }
+test_utils = { path = "../test_utils" }
