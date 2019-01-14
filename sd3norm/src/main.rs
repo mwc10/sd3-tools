@@ -1,9 +1,10 @@
+mod excel_iter;
+
 use failure::{Error, ResultExt, bail, format_err};
 use structopt::StructOpt;
 use log::{error, warn, info, debug};
 use flexi_logger::{Logger, default_format};
 use calamine::{Reader, RangeDeserializerBuilder, open_workbook_auto};
-use walkdir::WalkDir;
 
 use std::path::{Path, PathBuf};
 use std::fmt;
@@ -12,11 +13,8 @@ use std::ffi::{OsStr};
 
 use sd3::MifcNorm;
 
-
-
 #[derive(StructOpt, Debug)]
 /// Read an MIFC + normalization info excel workbook and create one normalized MIFC CSV for each sheet
-#[structopt(name = "sd3norm", version = "1.1.0")]
 struct Opt {
     /// Any number of input mifc+normalization-formatted excel files or directories containing excel files
     #[structopt(name = "INPUT", parse(from_os_str))]
@@ -71,21 +69,13 @@ fn run(opts: Opt) -> Result<(), Error> {
     debug!("Output directory: {:?}", output_directory);
     debug!("output append: {}", &append_str);
 
-    /* Convert collection of input files and/or directories into a workbook path iterator */
-    let workbooks = inputs
-        .iter()
-        .flat_map(|entry| { 
-            WalkDir::new(&entry)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .map(|e| e.path().to_path_buf())
-        })
-        .filter(is_excel)
-        .filter(is_not_excel_temp)
+    /* Convert collection of input files and/or directories into a "output/workbook" pathbuf iterator */
+    let workbooks = excel_iter::all_workbooks(&inputs)
         .map(|wb| {
             let out = generate_output_base(&wb, output_directory);
             (wb, out, &append_str)
         });
+    
     // TODO: Use a parallel iterator? 
     for (wb, out, app) in workbooks {
         match out {
@@ -197,25 +187,6 @@ fn append_file_name<S: AsRef<OsStr>>(path: &mut PathBuf, append: S) {
     }
 }
 
-/// Check the extension of a Path to see if it is an excel workbook
-fn is_excel<P: AsRef<Path>>(file: &P) -> bool {
-    if let Some(ex) = file.as_ref().extension() {
-        match &*ex.to_string_lossy() {
-            "xlsx" => true,
-            "xls" => true,
-            "xlsm" => true,
-            _ => false,
-        }
-    } else { false }
-}
-
-/// Check if an excel file is a not temp file
-fn is_not_excel_temp<P: AsRef<Path>>(file: &P) -> bool {
-    !file.as_ref()
-        .file_stem()
-        .filter(|s| s.to_string_lossy().starts_with("~"))
-        .is_some()
-}
 
 /// Turn the input path and the optional directory argument into an output path buffer
 fn generate_output_base(input: &Path, dir: Option<&Path>) -> Result<PathBuf, Error> {
