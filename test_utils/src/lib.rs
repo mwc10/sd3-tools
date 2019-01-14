@@ -1,4 +1,5 @@
-/* Utilities that are reused for testing */
+//! Utility functions, etc., that are reused for testing in various crates
+//! for the SD3/TCTC tools
 
 /// Compare doubles `A` and `B` within percent tolerance `tol`
 pub fn double_comparable(a: f64, b: f64, tol: f64) -> bool {

@@ -1,0 +1,16 @@
+[package]
+name = "sd3norm"
+version = "0.6.0"
+authors = ["mwc10 <43445389+mwc10@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+sd3 = { path = "../sd3" }
+units = { path = "../units" }
+structopt = "0.2.14"
+failure = "0.1.5"
+log = "0.4.6"
+flexi_logger = "0.10.4"
+calamine = "0.15.3"
+csv = "1.0.5"
+walkdir = "2.2.7"
