@@ -1,7 +1,7 @@
 # SD3 Tools
-This repo is a collection of cli tools to help with tranforming the various "ad-hoc" data formats that have popped up around the SD3 workbook. See 
+This repo is a collection of cli tools to help with tranforming the various "ad-hoc" data formats that have popped up around the SD3 workbook. See each tool's repo (linked below) for more info and help.
 
-## Installing
+## Installing a Tool
 ```rust
 cargo install --path {tool name}
 ```
