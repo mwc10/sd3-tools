@@ -100,7 +100,13 @@ pub fn cmpd_csv_to_mifc<'i>(files: impl Iterator<Item = PathBuf> + 'i, options: 
     Ok(())
 }
 
-fn convert_file<'opt, 'f>(path: &'f Path, options: &'opt crate::Opt, propgrps: &'f PropGroups<'opt>) -> Result<(), ConversionErr> {
+/// Handle the conversion of an individual CSV file 
+fn convert_file<'opt, 'f>(
+    path: &'f Path, 
+    options: &'opt crate::Opt, 
+    propgrps: &'f PropGroups<'opt>
+) -> Result<(), ConversionErr>
+{
     let append_str = options.append.as_ref().map(|s| s.as_str()).unwrap_or("mifc");
     let output_dir = options.out_dir.as_ref().map(|o| o.as_path());
     let use_stdout = options.stdout;
@@ -146,6 +152,8 @@ fn convert_file<'opt, 'f>(path: &'f Path, options: &'opt crate::Opt, propgrps: &
     Ok(())
 }
 
+/// Write out one record from the input CSV file to the ouput, 
+/// and save any important info about that record into the `&mut ChipGroups` struct  
 fn write_record<'opt: 'f, 'f: 'r, 'r, W: Write>(
     record: CmpdDit, 
     output: &'r mut csv::Writer<W>,
@@ -185,6 +193,8 @@ fn write_record<'opt: 'f, 'f: 'r, 'r, W: Write>(
     Ok(())
 }
 
+/// Propagating any information stored from propagating rows into the output
+/// CSV file for each chip that should have that info
 fn write_prop_rows<W: Write>(output: &mut csv::Writer<W>, groups: ChipGroups) -> Result<(), Error> {
     use std::fmt::Write;
 

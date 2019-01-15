@@ -1,3 +1,6 @@
+//! Helper functions for printing out the causes of a `failure` `Error` with 
+//! macros from the `log` crate
+
 use failure::Error;
 use log::{error, warn};
 
