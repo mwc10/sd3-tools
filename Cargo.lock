@@ -118,9 +118,10 @@ dependencies = [
 
 [[package]]
 name = "cmpdfmt"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "csv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "errlog 0.1.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "flexi_logger 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -168,6 +169,14 @@ version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "errlog"
+version = "0.1.0"
+dependencies = [
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

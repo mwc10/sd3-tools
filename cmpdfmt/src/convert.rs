@@ -4,7 +4,7 @@ use std::io::{Write};
 use log::{error, warn, info, debug};
 use failure::{Error, ResultExt, Fail};
 use sd3::{CmpdDit, Mifc};
-use crate::{errors, output};
+use crate::{output};
 
 /// A HashSet that contains the various data points with special chip ids 
 /// whose data are duplicated to any chips that share the same group.  
@@ -13,13 +13,11 @@ use crate::{errors, output};
 #[derive(Debug)]
 struct PropGroups<'opt> (HashSet<&'opt str>);
 impl<'opt> PropGroups<'opt> {
-    fn new(others: Option<&[&'opt str]>) -> Self {
-        let others = others.unwrap_or(&[]);
-
+    fn new(others: impl Iterator<Item = &'opt str>) -> Self {
         let groups = ["stock", "reservoir"]
             .iter()
-            .chain(others.iter())
             .map(|s| *s)
+            .chain(others)
             .collect();
 
         PropGroups(groups)
@@ -80,13 +78,14 @@ fn unrecoverable_err<E: Into<Error>>(e: E) -> ConversionErr {ConversionErr::NotR
 /// The key function that converts an `Iterator` of paths to CSV CMPD MIFC files into proper output MIFC files 
 pub fn cmpd_csv_to_mifc<'i>(files: impl Iterator<Item = PathBuf> + 'i, options: &crate::Opt) -> Result<(), Error> 
 {
-    let prop_groups = PropGroups::new(None);
+    let other_terms = options.other_terms.iter().map(String::as_str);
+    let prop_groups = PropGroups::new(other_terms);
 
     for path in files {
         match convert_file(&path, options, &prop_groups) {
             Err(ConversionErr::Recoverable(e)) => {
                 error!("skipping file <{:?}> due to:", &path);
-                errors::error_chain(&e);
+                errlog::print_chain(&e);
                 continue;
             },
             e @ Err(ConversionErr::NotRecoverable(_)) => {
@@ -124,7 +123,7 @@ fn convert_file<'opt, 'f>(path: &'f Path, options: &'opt crate::Opt, propgrps: &
             Ok(r)  => r,
             Err(e) => {
                 warn!("couldn't deserialize row");
-                errors::warn_chain(&e.into());
+                errlog::warn_chain(&e.into());
                 continue;
             }
         };
@@ -132,7 +131,7 @@ fn convert_file<'opt, 'f>(path: &'f Path, options: &'opt crate::Opt, propgrps: &
         match write_record(record, &mut wtr, &propgrps, &mut groups) {
             Err(ConversionErr::Recoverable(e)) => {
                 warn!("skipping row in <{:?}>", &path);
-                errors::warn_chain(&e);
+                errlog::warn_chain(&e);
                 continue;
             },
             Err(ConversionErr::NotRecoverable(e)) => {
@@ -187,6 +186,8 @@ fn write_record<'opt: 'f, 'f: 'r, 'r, W: Write>(
 }
 
 fn write_prop_rows<W: Write>(output: &mut csv::Writer<W>, groups: ChipGroups) -> Result<(), Error> {
+    use std::fmt::Write;
+
     for (_group_name, group_info) in groups.into_iter() {
         if group_info.stored_info.is_none() { continue; }
         let info = group_info.stored_info.unwrap();
@@ -195,7 +196,9 @@ fn write_prop_rows<W: Write>(output: &mut csv::Writer<W>, groups: ChipGroups) ->
         for (_propgrp, datapoints) in info {
             for mut point in datapoints {
                 for id in chips.iter() {
-                    point.id = id.clone();
+                    // be cheeky and avoid allocations by reusing the id String
+                    point.id.clear();
+                    point.id.write_str(id)?;
                     output.serialize(&point)
                         .context("writing propagating chip group data to output")?; // TODO -> match
                 }

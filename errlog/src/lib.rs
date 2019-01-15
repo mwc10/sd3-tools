@@ -1,10 +1,9 @@
 use failure::Error;
 use log::{error, warn};
 
-// TODO: make this its own crate
-// TODO: add these to sd3norm main.rs
-
-pub fn error_chain(e: &Error) {
+/// Read a `failure` `Error` and print out the causes and a backtrace as
+/// `log::error`s
+pub fn print_chain(e: &Error) {
     error!("{}", &e);
     for cause in e.iter_causes() {
         error!("caused by: {}", cause);
@@ -15,6 +14,8 @@ pub fn error_chain(e: &Error) {
     }
 }
 
+/// Read a `failure` `Error` and print out the causes and a backtrace as
+/// `log::warn`s
 pub fn warn_chain(e: &Error){
     warn!("{}", &e);
     for cause in e.iter_causes() {

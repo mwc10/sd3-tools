@@ -1,6 +1,6 @@
 [package]
 name = "cmpdfmt"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["mwc10 <43445389+mwc10@users.noreply.github.com>"]
 edition = "2018"
 
@@ -12,3 +12,4 @@ walkdir = "2.2.7"
 log = "0.4.6"
 flexi_logger = "0.10.5"
 sd3 = { path = "../sd3" }
+errlog = { path = "../errlog" }

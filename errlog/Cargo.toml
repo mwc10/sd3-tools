@@ -1,0 +1,9 @@
+[package]
+name = "errlog"
+version = "0.1.0"
+authors = ["mwc10 <43445389+mwc10@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+log = "0.4.6"
+failure = "0.1.5"
