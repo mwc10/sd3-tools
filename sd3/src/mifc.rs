@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use failure::{Fail};
 use log::{trace};
-use units::{SIUnit, self};
+use units::{SIUnit, SIError, self};
 
 #[derive(Debug, Fail)]
 /// Errors that can occur during normalization of a `MifcNorm` into a `Mifc`
@@ -14,6 +14,13 @@ pub enum MifcNormError {
     NoValue,
     #[fail(display = "row did not have an entered Value Unit")]
     NoValueUnit,
+    #[fail(display = "couldn't convert value unit into a known standarized unit")]
+    UnkValueUnit(#[cause] SIError),
+}
+impl From<SIError> for MifcNormError {
+    fn from(e: SIError) -> Self {
+        MifcNormError::UnkValueUnit(e)
+    }
 }
 //TODO: Deserialize optional string fields with a null || "" = None checking function
 
@@ -35,7 +42,10 @@ impl MifcNorm {
             if f != "" { return Err(MifcNormError::Excluded) }
         }
         let value = self.mifc.value.ok_or(MifcNormError::NoValue)?;
-        let value_unit = self.mifc.value_unit.ok_or(MifcNormError::NoValueUnit)?;
+        let value_unit: SIUnit = self.mifc.value_unit
+            .as_ref()
+            .ok_or(MifcNormError::NoValueUnit)?
+            .parse()?;
         let info = self.normal_info.ok_or(MifcNormError::NoInfo)?;
 
         let sample_time = info.calc_sample_time();
@@ -50,7 +60,7 @@ impl MifcNorm {
         );
 
         normalized_mifc.value = Some(norm_val);
-        normalized_mifc.value_unit = Some(SIUnit::ng_day_millioncells);        
+        normalized_mifc.value_unit = Some(format!("{}", SIUnit::ng_day_millioncells));        
         normalized_mifc.notes = if let Some(mut n) = normalized_mifc.notes {
             if &n != "" { n.push_str(" || "); }
             n.push_str(&note);
@@ -89,7 +99,7 @@ pub struct Mifc {
     #[serde(rename = "Value")]
     pub value: Option<f64>,
     #[serde(rename = "Value Unit")]
-    pub value_unit: Option<SIUnit>, 
+    pub value_unit: Option<String>, 
     #[serde(rename = "Caution Flag")]
     pub flag: Option<String>,
     #[serde(rename = "Exclude")]

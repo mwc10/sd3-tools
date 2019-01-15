@@ -10,7 +10,7 @@ units = { path = "../units" }
 structopt = "0.2.14"
 failure = "0.1.5"
 log = "0.4.6"
-flexi_logger = "0.10.4"
+flexi_logger = "0.10.5"
 calamine = "0.15.3"
 csv = "1.0.5"
 walkdir = "2.2.7"

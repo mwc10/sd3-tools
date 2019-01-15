@@ -29,6 +29,8 @@ pub enum SIUnit {
     ng,
     g,
 
+    umol_l,
+
     g_day,
     ng_day,
 
@@ -48,6 +50,8 @@ impl SIUnit {
                 => Volume,
             g | ng
                 => Mass,
+            umol_l
+                => Molarity,
             ng_day | g_day
                 => Rate,
             ng_day_cell | ng_day_millioncells | g_day_cell
@@ -86,6 +90,8 @@ impl SIUnit {
             g => "g",
             ng => "ng",
 
+            umol_l => "µmol/L",
+
             g_day => "g/day",
             ng_day => "ng/day",
 
@@ -112,6 +118,8 @@ impl SIUnit {
 
             g => 1.0,
             ng => 1e-9,
+
+            umol_l => 1e-6,
 
             g_day => 1.0,
             ng_day => 1e-9,
@@ -149,6 +157,8 @@ impl FromStr for SIUnit {
 
             "g" => Ok(g),
             "ng" => Ok(ng),
+
+            "umol/L" | "umol/l" | "µmol/L" | "µmol/l" | "µM" | "uM" => Ok(umol_l),
 
             "g/day" => Ok(g_day),
             "ng/day" => Ok(ng_day),
@@ -201,6 +211,7 @@ pub enum UnitType {
     CellNormalized,
     Rate,
     Mass,
+    Molarity,
 }
 
 pub fn convert((val, unit): (f64, SIUnit), to: SIUnit) -> Result<f64, SIError> {
@@ -251,5 +262,6 @@ mod tests {
         assert!(double_comparable(convert((32.0, mg_ml), g_l).unwrap(), 32.0, TOL), "32 mg_ml to g_l");
         assert!(double_comparable(convert((1.0, mg_dl), g_l).unwrap(), 1e-2, TOL), "1 mg_dl to g_l");
     }
+    // TODO: molarity conversion
 }
 

@@ -4,4 +4,5 @@ members = [
     "units",
     "test_utils",
     "sd3norm",
+    "cmpdfmt"
 ]
