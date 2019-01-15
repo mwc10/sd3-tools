@@ -2,6 +2,27 @@
 
 Format an input `.csv` file of TCTC analytical data into the MIFC format. Propogate special terms like "stock" to all chips that are in the same group as the special term.
 
+## Format Overview
+| Column Header        | Example Value | Description |
+|----------------------|---------------|-------------|
+| Group Indicator      | Low Dose      | A group for the chip; when a "special" chip is found, it's data is copied to all members of its group |
+| Chip ID              | C001          | Chip id; this is where the "special term" goes (see below) |
+| Time                 | 10.1.0        | d.h.m or, without periods, days |
+| Method/Kit           | Mass Spec     | MPS-db method |
+| Target/Analyte       | Caffeine      | MPS-db targert |
+| Result               | 0.15          | float value of the result |
+| Result Unit          | µM            | MPS-db unit |
+| Dilution             | 1             | Modify the measured result (`Result * Dilution`) |
+| Location             | effluent      | MPS-db sample location |
+| Note (optional)      |               | Any notes about this sample |
+| Flag (optional)      | F             | MPS-db flag; Flags `O`, `W`, and `F` cause the row to be excluded|
+| Replicate (optional) |               | Indicate if there are multiple samples that are replicates of each other |
+| TCTCxRef (optional)  |               | User defined |
+| Cell Count           | 1e5           | float; Not used as of now |
+| Sample Duration      | 1             | d.h.m or, without periods, days; Not used as of now |
+| Sample Volume (µL)   | 100           | float; Not used as of now |s
+
+
 ## Special Terms
 When certain terms are used for a chip id, the data in that row are propagated to all the other non-special chips in that group. 
 
