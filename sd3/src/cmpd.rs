@@ -1,19 +1,19 @@
 use serde_derive::{Deserialize, Serialize};
 use failure::{Fail};
-use units::{SIError};
+use units::{SIUnit};
 use crate::mifc::Mifc;
-//use units::SIUnit;
+use std::fmt::{self, Write};
 
 #[derive(Debug, Fail)]
 pub enum CmpdDitError {
     #[fail(display = "Couldn't convert <{}> to day, hour, minute time", _0)]
     TimeCvrt(String),
-    #[fail(display = "Didn't recognize unit")]
-    UnitCvrt(#[cause] SIError)
+    #[fail(display = "Couldn't write String when standardizing unit")]
+    UnitCvrt(#[cause] fmt::Error),
 }
 
-impl From<SIError> for CmpdDitError {
-    fn from(e: SIError) -> Self {
+impl From<fmt::Error> for CmpdDitError {
+    fn from(e: fmt::Error) -> Self {
         CmpdDitError::UnitCvrt(e)
     }
 }
@@ -73,6 +73,17 @@ impl CmpdDit {
             .filter(|s| s.contains("O") || s.contains("W") || s.contains("F") )
             .map(|_| "X".to_string());
         
+        // try to standardize the value unit, if possible
+        let value_unit = self.value_unit.map(|mut unit| {
+            if let Some(standard) = SIUnit::standardize(&unit) {
+               unit.clear();
+               unit.write_str(standard)?;
+            }
+
+            Ok(unit)
+        })
+        .map_or(Ok(None), |v: Result<_, fmt::Error>| v.map(Some))?;
+        
         Ok(Mifc {
             id: self.id,
             assay_plate_id: Some(self.group),
@@ -85,7 +96,7 @@ impl CmpdDit {
             hour,
             min,
             value,
-            value_unit: self.value_unit,
+            value_unit,
             flag: self.flag,
             exclude,
             notes: self.note,

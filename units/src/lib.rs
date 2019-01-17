@@ -40,6 +40,12 @@ pub enum SIUnit {
 }
 
 impl SIUnit {
+    /// Attempt to standardize an input `&str`. None is returned if 
+    /// the input could not be standardized.
+    pub fn standardize(input: &str) -> Option<&'static str> {
+        input.parse::<Self>().ok().map(|unit| unit.as_str())
+    }
+
     fn unit_type(&self) -> UnitType {
         use self::SIUnit::*;
         use self::UnitType::*;
