@@ -1,0 +1,9 @@
+Chip ID,Control Chip,Time [min],Notes,My Target,My Target [Flags],THEKJFS-_ gsd_Target [Exclude],Target [Notes]
+str,str -> bool,value,Option<str>,value,O<str>,O<str> -> bool,O<str>
+,,,,,,,
+Normalize to,,Config needs,,,,,
+1) Given Time,,Target -> Method Target Unit Info,,,,,
+2) Control,,Normalization Info Switching,,,,,
+3) Target VS Target,,Control Info Switching,,,,,
+,,Comparison info Switching,,,,,
+,,Default info for all calculated values,,,,,
