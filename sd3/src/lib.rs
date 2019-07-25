@@ -5,6 +5,7 @@ mod mifc;
 mod cmpd;
 
 pub use crate::mifc::Mifc as Mifc;
+pub use crate::mifc::MifcImage as MifcImage;
 pub use crate::mifc::MifcNorm as MifcNorm;
 pub use crate::mifc::MifcNormError as MifcNormError;
 pub use crate::cmpd::CmpdDit as CmpdDit;

@@ -112,6 +112,50 @@ pub struct Mifc {
     pub xref: Option<String>,
 }
 
+/// MIFC Image Format
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MifcImage {
+    #[serde(flatten)]
+    pub mifc: Mifc,
+    #[serde(rename = "Image File Name")]
+    pub file: String,
+    #[serde(rename = "Image Field")]
+    pub field: u32,
+    #[serde(rename = "Image Field Description")]
+    pub field_desc: Option<String>,
+    #[serde(rename = "Image Magnification")]
+    pub magnification: f64,
+    #[serde(rename = "Image Resolution")]
+    pub resolution: f64,
+    #[serde(rename = "Image Resolution Unit")]
+    pub resolution_unit: String,
+    #[serde(rename = "Image Sample Label")]
+    pub label: String,
+    #[serde(rename = "Image Sample Label Description")]
+    pub label_desc: Option<String>,
+    #[serde(rename = "Image Wavelength (nm)")]
+    pub wavelength: Option<String>,
+    #[serde(rename = "Image Color Mapping")]
+    pub colormap: String,
+    #[serde(rename = "Image Setting Note")]
+    pub image_note: Option<String>,
+}
+
+impl MifcImage {
+    // TODO: Enum!
+    pub fn get_vocab_field(&self, field: &str) -> &str {
+        match field {
+            "Image File Name" => &self.file,
+            "Method/Kit" => &self.mifc.method,
+            "Target/Analyte" => &self.mifc.target,
+            "Sample Location" => &self.mifc.sample_loc,
+            "Value Unit" => self.mifc.value_unit.as_ref().map(|u| u.as_str()).unwrap_or(""),
+            "Chip ID" => &self.mifc.id,
+            _ => panic!("Not a vocab field"),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct Normalization {
     #[serde(rename = "Duration Sample Collection (days)")]
