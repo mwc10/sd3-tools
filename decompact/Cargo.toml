@@ -1,0 +1,13 @@
+[package]
+name = "decompact"
+version = "0.1.0"
+authors = ["mwc10 <43445389+mwc10@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+structopt = "0.2.14"
+failure = "0.1.5"
+csv = "1.0.5"
+log = "0.4.6"
+flexi_logger = "0.10.5"
+errlog = {path = "../errlog"}

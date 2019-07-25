@@ -6,4 +6,5 @@ members = [
     "sd3norm",
     "cmpdfmt",
     "errlog",
+    "decompact"
 ]
