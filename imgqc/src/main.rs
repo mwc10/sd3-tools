@@ -1,7 +1,8 @@
 mod qc;
 mod vocab;
+mod img;
 
-use failure::{Error, format_err as ferr};
+use failure::{format_err as ferr, Error};
 use flexi_logger::{default_format, Logger};
 use log::*;
 use std::io::{self, BufWriter, Write};
@@ -57,7 +58,9 @@ fn run(opts: Opts) -> Result<(), Error> {
     let vocab = create_vocab_maps(&opts)?;
     let output = create_file_or_stdout(opts.output.as_ref())?;
     let default_imgdir = std::env::current_dir()?;
-    let imgdir = opts.images.as_ref()
+    let imgdir = opts
+        .images
+        .as_ref()
         .map(PathBuf::as_path)
         .or_else(|| Some(default_imgdir.as_path()))
         .filter(|p| p.is_dir())

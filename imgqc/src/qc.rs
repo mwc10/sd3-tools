@@ -1,4 +1,5 @@
 use crate::vocab::*;
+use crate::img;
 use calamine::{self, RangeDeserializerBuilder, Reader};
 use failure::{format_err as ferr, Error, ResultExt};
 use sd3::MifcImage;
@@ -6,7 +7,12 @@ use std::collections::HashSet;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-pub fn qc_images<W: Write>(metadata: &Path, vocab: VocabMaps, imgdir: &Path, mut output: W) -> Result<(), Error> {
+pub fn qc_images<W: Write>(
+    metadata: &Path,
+    vocab: VocabMaps,
+    imgdir: &Path,
+    mut output: W,
+) -> Result<(), Error> {
     let mut wb = calamine::open_workbook_auto(metadata)
         .context("opening input image metadata excel file")?;
     let first_sheet = wb
@@ -45,6 +51,10 @@ pub fn qc_images<W: Write>(metadata: &Path, vocab: VocabMaps, imgdir: &Path, mut
         })?;
 
     log::info!("{:?}", &expected_images);
+
+    img::write_image_section_header(&mut output)?;
+    img::check_unref_images(&expected_images, imgdir, &mut output)?;
+
     Ok(())
 }
 
