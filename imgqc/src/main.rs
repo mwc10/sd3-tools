@@ -1,6 +1,6 @@
+mod img;
 mod qc;
 mod vocab;
-mod img;
 
 use failure::{format_err as ferr, Error};
 use flexi_logger::{default_format, Logger};

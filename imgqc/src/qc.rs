@@ -1,5 +1,5 @@
-use crate::vocab::*;
 use crate::img;
+use crate::vocab::*;
 use calamine::{self, RangeDeserializerBuilder, Reader};
 use failure::{format_err as ferr, Error, ResultExt};
 use sd3::MifcImage;
