@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-pub fn qc_images<W: Write>(metadata: &Path, vocab: VocabMaps, mut output: W) -> Result<(), Error> {
+pub fn qc_images<W: Write>(metadata: &Path, vocab: VocabMaps, imgdir: &Path, mut output: W) -> Result<(), Error> {
     let mut wb = calamine::open_workbook_auto(metadata)
         .context("opening input image metadata excel file")?;
     let first_sheet = wb
@@ -16,17 +16,17 @@ pub fn qc_images<W: Write>(metadata: &Path, vocab: VocabMaps, mut output: W) -> 
         .clone();
     let range = wb.worksheet_range(&first_sheet).unwrap()?;
     let metadata_iter = RangeDeserializerBuilder::new().from_range(&range)?;
-    let check_row = make_vocab_checker(&vocab);
+    let summarize_row = row_summarizer(&vocab, &imgdir);
 
     // Start writing the output file
     write_output_prologue(&mut output, &metadata.to_string_lossy())?;
     // Check the controlled vocab and image path for each row in the metadata excel file,
     // while also collecting a list of image file names
-    let expected_images: HashSet<PathBuf> = metadata_iter
+    let expected_images = metadata_iter
         .map(Into::into)
         .enumerate()
         .map(|(i, record): (usize, Result<MifcImage, _>)| match record {
-            Ok(row) => RowInfo::new(i, row.file.as_str(), check_row(i, &row)),
+            Ok(row) => summarize_row(i, &row),
             Err(e) => RowInfo::new(
                 i,
                 None,
@@ -58,30 +58,31 @@ struct RowInfo {
 impl RowInfo {
     fn new<'a, N, I>(number: usize, img: N, iss: I) -> Self
     where
-        N: Into<Option<&'a str>>,
+        N: Into<Option<PathBuf>>,
         I: Into<Option<String>>,
     {
-        let img_name = img
-            .into()
-            .and_then(|p| Path::new(&p).file_name().map(PathBuf::from));
-
         Self {
             number,
-            img_name,
+            img_name: img.into(),
             issues: iss.into(),
         }
     }
 }
 
 fn write_output_prologue<W: Write>(mut wtr: W, file: &str) -> io::Result<()> {
-    writeln!(wtr, "# Image QC for \"{}\"\n", file)?;
-    //TODO: Add run date?
+    use chrono::prelude::*;
+
+    let formated_date = Local::now().format("%Y-%m-%d at %l:%M %P UTC%Z");
+
+    writeln!(wtr, "# Image QC for \"{}\"", file)?;
+    writeln!(wtr, "QC run at {}\n", &formated_date)?;
     writeln!(wtr, "## Image Metadata File Vocab and Image Path Checks")
 }
 
-fn make_vocab_checker<'m>(
+fn row_summarizer<'m>(
     allowed: &'m VocabMaps,
-) -> impl Fn(usize, &MifcImage) -> Option<String> + 'm {
+    imgdir: &'m Path,
+) -> impl Fn(usize, &MifcImage) -> RowInfo + 'm {
     use std::iter::once;
 
     let check_target = make_checker("Target/Analyte", &allowed.targets);
@@ -91,12 +92,18 @@ fn make_vocab_checker<'m>(
     let check_chip = make_checker("Chip ID", &allowed.chips);
 
     move |i, row| {
-        once(check_target(i, row))
+        let img = {
+            let mut i = imgdir.to_path_buf();
+            i.push(&row.file);
+            i
+        };
+
+        let issues = once(check_target(i, row))
             .chain(once(check_method(i, row)))
             .chain(once(check_unit(i, row)))
             .chain(once(check_location(i, row)))
             .chain(once(check_chip(i, row)))
-            .chain(once(check_image(i, row)))
+            .chain(once(check_image(i, &img)))
             .filter_map(|x| x)
             .fold(None, |s: Option<String>, iss| {
                 s.map(|mut s| {
@@ -105,7 +112,9 @@ fn make_vocab_checker<'m>(
                     s
                 })
                 .or_else(|| Some(format!("### Row {}\n{}", i + 2, iss)))
-            })
+            });
+
+        RowInfo::new(i, img, issues)
     }
 }
 
@@ -130,8 +139,7 @@ fn make_checker<'m>(
     }
 }
 // A specialized checking function for images that looks if each image path (a) exists and (b) is a file
-fn check_image(i: usize, row: &MifcImage) -> Option<String> {
-    let img = Path::new(&row.file);
+fn check_image(i: usize, img: &Path) -> Option<String> {
     let find_err = |i, e| {
         format!(
             "* row {} image path error: {}\n  * path: {}",

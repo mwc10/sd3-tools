@@ -1,7 +1,7 @@
 mod qc;
 mod vocab;
 
-use failure::Error;
+use failure::{Error, format_err as ferr};
 use flexi_logger::{default_format, Logger};
 use log::*;
 use std::io::{self, BufWriter, Write};
@@ -18,6 +18,9 @@ struct Opts {
     /// File to log QC to, or stdout if not present
     #[structopt(parse(from_os_str))]
     output: Option<PathBuf>,
+    /// Directory of image files to check
+    #[structopt(short, long, parse(from_os_str))]
+    images: Option<PathBuf>,
     /// Directory containing MPS vocab files
     #[structopt(short, long, parse(from_os_str))]
     vocab: PathBuf,
@@ -53,10 +56,16 @@ fn main() {
 fn run(opts: Opts) -> Result<(), Error> {
     let vocab = create_vocab_maps(&opts)?;
     let output = create_file_or_stdout(opts.output.as_ref())?;
+    let default_imgdir = std::env::current_dir()?;
+    let imgdir = opts.images.as_ref()
+        .map(PathBuf::as_path)
+        .or_else(|| Some(default_imgdir.as_path()))
+        .filter(|p| p.is_dir())
+        .ok_or_else(|| ferr!("Image directory ('-i') path is not a directory"))?;
 
-    debug!("{:#?}\n{:#?}\n", &opts, &vocab);
+    debug!("{:#?}\n{:#?}\nimages: {}", &opts, &vocab, imgdir.display());
 
-    qc::qc_images(&opts.index, vocab, output)
+    qc::qc_images(&opts.index, vocab, imgdir, output)
 }
 
 fn create_vocab_maps(opts: &Opts) -> Result<VocabMaps, VocabError> {

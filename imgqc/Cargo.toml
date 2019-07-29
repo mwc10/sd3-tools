@@ -11,5 +11,6 @@ csv = "1.0.5"
 log = "0.4.6"
 flexi_logger = "0.10.5"
 calamine = "0.15.5"
+chrono = "0.4.7"
 errlog = {path = "../errlog"}
 sd3 = {path = "../sd3"}
