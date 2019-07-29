@@ -36,7 +36,7 @@ pub fn qc_images<W: Write>(
             Err(e) => RowInfo::new(
                 i,
                 None,
-                format!("* issue parsing line {} in metadata file: {}", i + 2, e),
+                format!("* issue parsing row {} in metadata file: {}", i + 2, e),
             ),
         })
         .try_fold(HashSet::new(), |mut acc, info| -> io::Result<_> {
