@@ -40,7 +40,8 @@ pub fn qc_images<W: Write>(
             ),
         })
         .try_fold(HashSet::new(), |mut acc, info| -> io::Result<_> {
-            if let Some(issue) = info.issues {
+            if let Some(issue) = info.issues.as_ref() {
+                writeln!(&mut output, "### Row {}", info.excel_row())?;
                 writeln!(&mut output, "{}", issue)?;
             }
             if let Some(img) = info.img_name {
@@ -59,7 +60,7 @@ pub fn qc_images<W: Write>(
 }
 
 struct RowInfo {
-    #[allow(dead_code)]
+    // data row number (add two for excel row number)
     number: usize,
     img_name: Option<PathBuf>,
     issues: Option<String>,
@@ -76,6 +77,10 @@ impl RowInfo {
             img_name: img.into(),
             issues: iss.into(),
         }
+    }
+
+    fn excel_row(&self) -> usize {
+        self.number + 2
     }
 }
 
@@ -121,7 +126,7 @@ fn row_summarizer<'m>(
                     s.push_str(&iss);
                     s
                 })
-                .or_else(|| Some(format!("### Row {}\n{}", i + 2, iss)))
+                .or_else(|| Some(iss.to_string()))
             });
 
         RowInfo::new(i, img, issues)
