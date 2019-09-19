@@ -23,7 +23,7 @@ Download from the [methods page](https://mps.csb.pitt.edu/assays/methods/) and r
 #### `MPS Database Locations.csv`
 Required Column: `Location`
 
-This file has to be downloaded from admin, then rename the `Name` column.
+Download from the [locations page](https://mps.csb.pitt.edu/assays/locations/) and rename the file. No column changes are necessary.
 
 #### `MPS Database Units.csv`
 Required Column: `Unit`
