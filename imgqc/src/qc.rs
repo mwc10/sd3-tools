@@ -3,7 +3,7 @@ use crate::vocab::*;
 use calamine::{self, RangeDeserializerBuilder, Reader};
 use failure::{format_err as ferr, Error, ResultExt};
 use sd3::MifcImage;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
@@ -28,7 +28,9 @@ pub fn qc_images<W: Write>(
     write_output_prologue(&mut output, &metadata.to_string_lossy())?;
     // Check the controlled vocab and image path for each row in the metadata excel file,
     // while also collecting a list of image file names
-    let expected_images = metadata_iter
+    // Also, create a map of the count of file names for all images, as the image name
+    // cannot be duplicated. (e.g., `file.png` and `file.mp4` are illegal)
+    let (expected_images, name_count) = metadata_iter
         .map(Into::into)
         .enumerate()
         .map(|(i, record): (usize, Result<MifcImage, _>)| match record {
@@ -39,28 +41,36 @@ pub fn qc_images<W: Write>(
                 format!("* issue parsing row {} in metadata file: {}", i + 2, e),
             ),
         })
-        .try_fold(HashSet::new(), |mut acc, info| -> io::Result<_> {
-            if let Some(issue) = info.issues.as_ref() {
-                writeln!(&mut output, "### Row {}", info.excel_row())?;
-                writeln!(&mut output, "{}", issue)?;
-            }
-            if let Some(img) = info.img_name {
-                acc.insert(img);
-            }
+        .try_fold(
+            (HashSet::new(), HashMap::new()),
+            |(mut imgs, mut counts), info| -> io::Result<_> {
+                if let Some(issue) = info.issues.as_ref() {
+                    writeln!(&mut output, "### Row {}", info.excel_row())?;
+                    writeln!(&mut output, "{}", issue)?;
+                }
+                if let Some(img) = info.img_name {
+                    let maybe_stem = img.file_stem().map(|s| s.to_string_lossy().into_owned());
+                    imgs.insert(img);
+                    if let Some(stem) = maybe_stem {
+                        *counts.entry(stem).or_insert(0) += 1;
+                    }
+                }
 
-            Ok(acc)
-        })?;
+                Ok((imgs, counts))
+            },
+        )?;
 
     log::info!("{:?}", &expected_images);
 
     img::write_image_section_header(&mut output)?;
     img::check_unref_images(&expected_images, imgdir, &mut output)?;
+    img::duplicate_file_stems(&name_count, &mut output)?;
 
     Ok(())
 }
 
 struct RowInfo {
-    // data row number (add two for excel row number)
+    // 0-index data row number (add two for excel row number)
     number: usize,
     img_name: Option<PathBuf>,
     issues: Option<String>,

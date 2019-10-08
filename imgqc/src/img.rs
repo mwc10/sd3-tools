@@ -1,5 +1,5 @@
 use failure::Fail;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -8,6 +8,13 @@ use std::path::{Path, PathBuf};
 // limit to files with image extensions (.png, .jpg, .gif, .mp4, .tif)?
 // list only images that are not in the metadata file
 // image directory needs to be flat for it to be read into db
+
+fn image_exts() -> HashSet<&'static str> {
+    ["png", "jpg", "gif", "tif", "mp4"]
+        .iter()
+        .cloned()
+        .collect()
+}
 
 pub fn write_image_section_header<W: Write>(mut wtr: W) -> io::Result<()> {
     writeln!(wtr, "\n## Unreferenced Image Check")
@@ -57,11 +64,16 @@ pub fn check_unref_images<W: Write>(
         })
 }
 
-fn image_exts() -> HashSet<&'static str> {
-    ["png", "jpg", "gif", "tif", "mp4"]
-        .iter()
-        .cloned()
-        .collect()
+/// Report any duplicate file stems in the MIFC-Images files
+pub fn duplicate_file_stems(
+    stem_count: &HashMap<String, u32>,
+    mut wtr: impl Write,
+) -> io::Result<()> {
+    for (stem, count) in stem_count.iter().filter(|(_, v)| **v > 1) {
+        writeln!(wtr, "* Found repeated ({}) file stem: {}", count, stem)?;
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Fail)]

@@ -1,6 +1,6 @@
 [package]
 name = "imgqc"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["mwc10 <43445389+mwc10@users.noreply.github.com>"]
 edition = "2018"
 
