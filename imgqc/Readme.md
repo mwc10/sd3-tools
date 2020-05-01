@@ -13,12 +13,12 @@ For the Chip metadata, the user can enter a path to a `CSV` file, or place a fil
 #### `MPS Database Targets.csv`
 Required Column: `Target`
 
-Download from the [targets page](https://mps.csb.pitt.edu/assays/targets/) and rename the file. No column changes are necessary.
+Download from the [targets page](https://mps.csb.pitt.edu/assays/target/) and rename the file. No column changes are necessary.
 
 #### `MPS Database Methods.csv`
 Required Column: `Method`
 
-Download from the [methods page](https://mps.csb.pitt.edu/assays/methods/) and rename the file. No column changes are necessary.
+Download from the [methods page](https://mps.csb.pitt.edu/assays/method/) and rename the file. No column changes are necessary.
 
 #### `MPS Database Locations.csv`
 Required Column: `Location`
