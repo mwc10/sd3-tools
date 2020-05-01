@@ -74,43 +74,61 @@ impl VocabMapsBuilder {
 
 #[derive(Debug)]
 pub struct VocabMaps {
-    pub targets: HashSet<Box<str>>,
-    pub methods: HashSet<Box<str>>,
-    pub locations: HashSet<Box<str>>,
-    pub units: HashSet<Box<str>>,
-    pub chips: HashSet<Box<str>>,
+    pub targets: VocabSet,
+    pub methods: VocabSet,
+    pub locations: VocabSet,
+    pub units: VocabSet,
+    pub chips: VocabSet,
+}
+
+#[derive(Debug)]
+pub struct VocabSet {
+    pub values: HashSet<Box<str>>,
+    pub case_sensitive: bool,
 }
 
 impl VocabMaps {
     fn from_builder(info: &VocabMapsBuilder) -> Result<Self, VocabError> {
         Ok(Self {
-            targets: create_hashset(info.targets.as_ref().unwrap(), "Target")?,
-            methods: create_hashset(info.methods.as_ref().unwrap(), "Method")?,
-            locations: create_hashset(info.locations.as_ref().unwrap(), "Location")?,
-            units: create_hashset(info.units.as_ref().unwrap(), "Unit")?,
-            chips: create_hashset(info.chips.as_ref().unwrap(), "Name")?,
+            targets: VocabSet::create(info.targets.as_ref().unwrap(), "Target", true)?,
+            methods: VocabSet::create(info.methods.as_ref().unwrap(), "Method", true)?,
+            locations: VocabSet::create(info.locations.as_ref().unwrap(), "Name", false)?,
+            units: VocabSet::create(info.units.as_ref().unwrap(), "Unit", true)?,
+            chips: VocabSet::create(info.chips.as_ref().unwrap(), "Name", true)?,
         })
     }
 }
 
-fn create_hashset(p: &Path, col: &str) -> Result<HashSet<Box<str>>, VocabError> {
-    use VocabError::*;
+impl VocabSet {
+    fn create(p: &Path, col: &str, case_sensitive: bool) -> Result<Self, VocabError> {
+        use VocabError::*;
 
-    let mut rdr = csv::Reader::from_path(p).map_err(|e| OpeningVocab(pstr(p), e))?;
-    let target_col = rdr
-        .headers()
-        .map(|hdr| hdr.iter().position(|c| c == col))?
-        .ok_or_else(|| VocabError::MissingColumn(col.into(), pstr(p)))?;
+        let mut rdr = csv::Reader::from_path(p).map_err(|e| OpeningVocab(pstr(p), e))?;
+        let target_col = rdr
+            .headers()
+            .map(|hdr| hdr.iter().position(|c| c == col))?
+            .ok_or_else(|| VocabError::MissingColumn(col.into(), pstr(p)))?;
 
-    let mut record = csv::StringRecord::new();
-    let mut output = HashSet::new();
-    while rdr.read_record(&mut record)? {
-        if &record[target_col] != "" {
-            output.insert(record[target_col].into());
+        let mut record = csv::StringRecord::new();
+        let mut values = HashSet::new();
+        while rdr.read_record(&mut record)? {
+            let entry = &record[target_col];
+            if entry == "" {
+                continue;
+            }
+
+            if case_sensitive {
+                values.insert(entry.into());
+            } else {
+                values.insert(entry.to_lowercase().into());
+            }
         }
-    }
 
-    Ok(output)
+        Ok(Self {
+            values,
+            case_sensitive,
+        })
+    }
 }
 
 fn pstr<P: AsRef<Path>>(p: P) -> String {

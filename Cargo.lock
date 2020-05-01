@@ -251,7 +251,7 @@ dependencies = [
 
 [[package]]
 name = "imgqc"
-version = "0.5.0"
+version = "0.6.2"
 dependencies = [
  "calamine 0.15.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",

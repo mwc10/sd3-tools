@@ -146,12 +146,19 @@ fn row_summarizer<'m>(
 /// A factory to create functions that check for metadata fields in the MIFC file
 fn make_checker<'m>(
     col_name: &'m str,
-    allowed_vocab: &'m HashSet<Box<str>>,
+    allowed_vocab: &'m VocabSet,
 ) -> impl Fn(usize, &MifcImage) -> Option<String> + 'm {
     move |i, row| {
-        let value = row.get_vocab_field(col_name);
+        let lowercase;
+        let raw = row.get_vocab_field(col_name);
+        let value = if allowed_vocab.case_sensitive {
+            raw
+        } else {
+            lowercase = raw.to_lowercase();
+            &lowercase
+        };
 
-        if !allowed_vocab.contains(value) {
+        if !allowed_vocab.values.contains(value) {
             Some(format!(
                 "* row {} field \"{}\" is not in MPS: {}",
                 i + 2,

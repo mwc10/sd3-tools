@@ -69,7 +69,6 @@ pub fn duplicate_file_stems(
     stem_count: &HashMap<String, u32>,
     mut wtr: impl Write,
 ) -> io::Result<()> {
-
     writeln!(wtr, "\n## Repeated File Stem Check")?;
 
     for (stem, count) in stem_count.iter().filter(|(_, v)| **v > 1) {

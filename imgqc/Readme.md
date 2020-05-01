@@ -23,12 +23,12 @@ Download from the [methods page](https://mps.csb.pitt.edu/assays/method/) and re
 #### `MPS Database Locations.csv`
 Required Column: `Location`
 
-Download from the [locations page](https://mps.csb.pitt.edu/assays/locations/) and rename the file. No column changes are necessary.
+Download from the [locations page](https://mps.csb.pitt.edu/assays/location/) and rename the file. No column changes are necessary.
 
 #### `MPS Database Units.csv`
 Required Column: `Unit`
 
-Download from the [units page](https://mps.csb.pitt.edu/assays/units/) and rename the file. No column changes are necessary.
+Download from the [units page](https://mps.csb.pitt.edu/assays/unit/) and rename the file. No column changes are necessary.
 
 #### Chip Metadata
 Required Column: `Name`
