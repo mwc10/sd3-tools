@@ -1,7 +1,7 @@
 use crate::img;
 use crate::vocab::*;
+use anyhow::{anyhow, Context, Result};
 use calamine::{self, RangeDeserializerBuilder, Reader};
-use failure::{format_err as ferr, Error, ResultExt};
 use sd3::MifcImage;
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Write};
@@ -12,13 +12,13 @@ pub fn qc_images<W: Write>(
     vocab: VocabMaps,
     imgdir: &Path,
     mut output: W,
-) -> Result<(), Error> {
+) -> Result<()> {
     let mut wb = calamine::open_workbook_auto(metadata)
         .context("opening input image metadata excel file")?;
     let first_sheet = wb
         .sheet_names()
         .get(0)
-        .ok_or_else(|| ferr!("No sheets in metadata workbook"))?
+        .ok_or_else(|| anyhow!("No sheets in metadata workbook"))?
         .clone();
     let range = wb.worksheet_range(&first_sheet).unwrap()?;
     let metadata_iter = RangeDeserializerBuilder::new().from_range(&range)?;
@@ -63,8 +63,10 @@ pub fn qc_images<W: Write>(
     log::info!("{:?}", &expected_images);
 
     img::write_image_section_header(&mut output)?;
-    img::check_unref_images(&expected_images, imgdir, &mut output)?;
-    img::duplicate_file_stems(&name_count, &mut output)?;
+    img::check_unref_images(&expected_images, imgdir, &mut output)
+        .context("checking for unreferenced images")?;
+    img::duplicate_file_stems(&name_count, &mut output)
+        .context("checking for duplicate file names in MIFC")?;
 
     Ok(())
 }

@@ -1,4 +1,4 @@
-use failure::Fail;
+use anyhow::{bail, Context, Result};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, Write};
@@ -24,17 +24,23 @@ pub fn check_unref_images<W: Write>(
     ref_imgs: &HashSet<PathBuf>,
     base: &Path,
     mut wtr: W,
-) -> Result<(), ImgCheckErr> {
-    use ImgCheckErr::*;
-
+) -> Result<()> {
     let extensions = image_exts();
 
     if !base.is_dir() {
-        return Err(NotDir(base.to_string_lossy().into()));
+        bail!(
+            "Image directory path '{}' was not a directory",
+            base.display()
+        );
     }
 
     fs::read_dir(base)
-        .map_err(|e| AccessDir(base.to_string_lossy().into(), e))
+        .with_context(|| {
+            format!(
+                "Couldn't open image directory '{}' for checking",
+                base.display()
+            )
+        })
         .and_then(|iter| {
             for entry in iter {
                 let entry = entry?;
@@ -76,20 +82,4 @@ pub fn duplicate_file_stems(
     }
 
     Ok(())
-}
-
-#[derive(Debug, Fail)]
-pub enum ImgCheckErr {
-    #[fail(display = "Image directory path '{}' was not a directory", _0)]
-    NotDir(String),
-    #[fail(display = "Couldn't open image directory '{}' for checking", _0)]
-    AccessDir(String, #[fail(cause)] io::Error),
-    #[fail(display = "Io Error when checking for unreferenced images")]
-    Io(#[fail(cause)] io::Error),
-}
-
-impl From<io::Error> for ImgCheckErr {
-    fn from(e: io::Error) -> Self {
-        ImgCheckErr::Io(e)
-    }
 }

@@ -1,9 +1,9 @@
-use failure::Fail;
+use anyhow::{anyhow, Context, Result};
 use std::collections::HashSet;
 use std::path::Path;
 
-use serde_derive::Deserialize;
 use reqwest::blocking::Client;
+use serde_derive::Deserialize;
 
 #[derive(Debug)]
 pub struct VocabMaps {
@@ -21,8 +21,12 @@ pub struct VocabSet {
 }
 
 impl VocabMaps {
-    pub fn new(chips: &Path) -> Result<Self, VocabError> {
-        macro_rules! MPS_API_BASE { () => { "https://mps.csb.pitt.edu/api/"}; }
+    pub fn new(chips: &Path) -> Result<Self> {
+        macro_rules! MPS_API_BASE {
+            () => {
+                "https://mps.csb.pitt.edu/api/"
+            };
+        }
         const MPS_TARGETS: &str = concat!(MPS_API_BASE!(), "targets/");
         const MPS_METHODS: &str = concat!(MPS_API_BASE!(), "methods/");
         const MPS_LOCATIONS: &str = concat!(MPS_API_BASE!(), "locations/");
@@ -35,19 +39,24 @@ impl VocabMaps {
         let units = VocabSet::download(MPS_UNITS, &client, true)?;
         let chips = VocabSet::from_csv(chips, "Name", true)?;
 
-        Ok(Self {targets, methods, locations, units, chips })
+        Ok(Self {
+            targets,
+            methods,
+            locations,
+            units,
+            chips,
+        })
     }
 }
 
 impl VocabSet {
-    fn from_csv(p: &Path, col: &str, case_sensitive: bool) -> Result<Self, VocabError> {
-        use VocabError::*;
-
-        let mut rdr = csv::Reader::from_path(p).map_err(|e| OpeningVocab(pstr(p), e))?;
+    fn from_csv(p: &Path, col: &str, case_sensitive: bool) -> Result<Self> {
+        let mut rdr =
+            csv::Reader::from_path(p).with_context(|| anyhow!("opening CSV {}", p.display()))?;
         let target_col = rdr
             .headers()
             .map(|hdr| hdr.iter().position(|c| c == col))?
-            .ok_or_else(|| VocabError::MissingColumn(col.into(), pstr(p)))?;
+            .ok_or_else(|| anyhow!("Missing column {} in CSV {}", col, p.display()))?;
 
         let mut record = csv::StringRecord::new();
         let mut values = HashSet::new();
@@ -70,19 +79,29 @@ impl VocabSet {
         })
     }
 
-    pub fn download(url: &str, client: &Client, case_sensitive: bool) -> Result<Self, VocabError> {
-        let info: Vec<ComponentInfo> = client.get(url).send()?.json()?;
+    pub fn download(url: &str, client: &Client, case_sensitive: bool) -> Result<Self> {
+        let info: Vec<ComponentInfo> = client
+            .get(url)
+            .send()
+            .with_context(|| anyhow!("sending request to {}", url))?
+            .json()
+            .with_context(|| anyhow!("parsing JSON from {}", url))?;
 
-        let values = info.into_iter()
+        let values = info
+            .into_iter()
             .map(|ComponentInfo { name, .. }| {
                 if case_sensitive {
                     name.into_boxed_str()
                 } else {
                     name.to_lowercase().into_boxed_str()
                 }
-            }).collect();
+            })
+            .collect();
 
-        Ok(Self { values, case_sensitive} )
+        Ok(Self {
+            values,
+            case_sensitive,
+        })
     }
 }
 
@@ -90,32 +109,4 @@ impl VocabSet {
 struct ComponentInfo {
     id: usize,
     name: String,
-}
-
-fn pstr<P: AsRef<Path>>(p: P) -> String {
-    p.as_ref().to_string_lossy().into_owned()
-}
-
-#[derive(Debug, Fail)]
-pub enum VocabError {
-    #[fail(display = "couldn't open '{}' for reading", _0)]
-    OpeningVocab(String, #[fail(cause)] csv::Error),
-    #[fail(display = "required vocab column '{}' not present in '{}'", _0, _1)]
-    MissingColumn(String, String),
-    #[fail(display = "vocab processing csv error")]
-    Csv(#[fail(cause)] csv::Error),
-    #[fail(display = "issue download MPS-Db data")]
-    Req(#[fail(cause)] reqwest::Error),
-}
-
-impl From<csv::Error> for VocabError {
-    fn from(e: csv::Error) -> Self {
-        VocabError::Csv(e)
-    }
-}
-
-impl From<reqwest::Error> for VocabError {
-    fn from(e: reqwest::Error) -> Self {
-        Self::Req(e)
-    }
 }

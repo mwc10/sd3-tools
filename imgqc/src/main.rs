@@ -2,7 +2,7 @@ mod img;
 mod qc;
 mod vocab;
 
-use failure::{format_err as ferr, Error};
+use anyhow::{bail, Context, Result};
 use flexi_logger::{default_format, Logger};
 use log::*;
 use std::io::{self, BufWriter, Write};
@@ -46,27 +46,35 @@ fn main() {
         .unwrap_or_else(|e| panic!("Logger initialization failed with {}", e));
 
     if let Err(e) = run(opts) {
-        errlog::print_chain(&e);
+        eprintln!("{:?}", e);
         ::std::process::exit(1);
     }
 }
 
-fn run(opts: Opts) -> Result<(), Error> {
-    let vocab =  VocabMaps::new(&opts.chips)?;
+fn run(opts: Opts) -> Result<()> {
+    let vocab = VocabMaps::new(&opts.chips).context("creating MPS vocab maps")?;
     // vocab.log()
-    let output = create_file_or_stdout(opts.output.as_ref())?;
-    let default_imgdir = std::env::current_dir()?;
-    let imgdir = opts
-        .images
-        .as_ref()
-        .map(PathBuf::as_path)
-        .or_else(|| Some(default_imgdir.as_path()))
-        .filter(|p| p.is_dir())
-        .ok_or_else(|| ferr!("Image directory ('-i') path is not a directory"))?;
+    let output = create_file_or_stdout(opts.output.as_ref()).context("opening output")?;
+    let default_imgdir;
+    let user_imgdir = opts.images.as_deref();
+    let imgdir = if user_imgdir.is_some() {
+        user_imgdir.unwrap()
+    } else {
+        default_imgdir =
+            std::env::current_dir().context("getting cwd for default image directory")?;
+        &default_imgdir
+    };
+
+    if !imgdir.is_dir() {
+        bail!(
+            "Image directory path is not a directory: {}",
+            imgdir.display()
+        );
+    }
 
     debug!("{:#?}\n{:#?}\nimages: {}", &opts, &vocab, imgdir.display());
 
-    qc::qc_images(&opts.mifc, vocab, imgdir, output)
+    qc::qc_images(&opts.mifc, vocab, imgdir, output).context("running image qc")
 }
 
 fn create_file_or_stdout<P>(path: Option<P>) -> io::Result<Box<dyn Write>>
