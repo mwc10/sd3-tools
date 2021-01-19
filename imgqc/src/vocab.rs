@@ -1,76 +1,9 @@
 use failure::Fail;
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-#[derive(Debug, Default)]
-pub struct VocabMapsBuilder {
-    targets: Option<PathBuf>,
-    methods: Option<PathBuf>,
-    locations: Option<PathBuf>,
-    units: Option<PathBuf>,
-    chips: Option<PathBuf>,
-}
-
-impl VocabMapsBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    /// Set up default paths to vocab CSV files
-    pub fn directory_defaults<P: AsRef<Path>>(&mut self, dir: P) -> &mut Self {
-        let dir = dir.as_ref();
-
-        if self.targets.is_none() {
-            self.targets = {
-                let mut targets = dir.to_path_buf();
-                targets.push("MPS Database Targets.csv");
-                targets.into()
-            };
-        }
-
-        if self.methods.is_none() {
-            self.methods = {
-                let mut methods = dir.to_path_buf();
-                methods.push("MPS Database Methods.csv");
-                methods.into()
-            };
-        }
-
-        if self.locations.is_none() {
-            self.locations = {
-                let mut locations = dir.to_path_buf();
-                locations.push("MPS Database Locations.csv");
-                locations.into()
-            };
-        }
-
-        if self.units.is_none() {
-            self.units = {
-                let mut units = dir.to_path_buf();
-                units.push("MPS Database Units.csv");
-                units.into()
-            };
-        }
-
-        if self.chips.is_none() {
-            self.chips = {
-                let mut chips = dir.to_path_buf();
-                chips.push("MPS Database Chips.csv");
-                chips.into()
-            };
-        }
-
-        self
-    }
-    pub fn set_chips<P: AsRef<Path>>(&mut self, p: P) -> &mut Self {
-        self.chips = Some(p.as_ref().to_path_buf());
-        self
-    }
-
-    pub fn read_maps(&self) -> Result<VocabMaps, VocabError> {
-        // check for nones
-        VocabMaps::from_builder(self)
-    }
-}
+use serde_derive::Deserialize;
+use reqwest::blocking::Client;
 
 #[derive(Debug)]
 pub struct VocabMaps {
@@ -88,19 +21,26 @@ pub struct VocabSet {
 }
 
 impl VocabMaps {
-    fn from_builder(info: &VocabMapsBuilder) -> Result<Self, VocabError> {
-        Ok(Self {
-            targets: VocabSet::create(info.targets.as_ref().unwrap(), "Target", true)?,
-            methods: VocabSet::create(info.methods.as_ref().unwrap(), "Method", true)?,
-            locations: VocabSet::create(info.locations.as_ref().unwrap(), "Name", false)?,
-            units: VocabSet::create(info.units.as_ref().unwrap(), "Unit", true)?,
-            chips: VocabSet::create(info.chips.as_ref().unwrap(), "Name", true)?,
-        })
+    pub fn new(chips: &Path) -> Result<Self, VocabError> {
+        macro_rules! MPS_API_BASE { () => { "https://mps.csb.pitt.edu/api/"}; }
+        const MPS_TARGETS: &str = concat!(MPS_API_BASE!(), "targets/");
+        const MPS_METHODS: &str = concat!(MPS_API_BASE!(), "methods/");
+        const MPS_LOCATIONS: &str = concat!(MPS_API_BASE!(), "locations/");
+        const MPS_UNITS: &str = concat!(MPS_API_BASE!(), "units/");
+
+        let client = Client::new();
+        let targets = VocabSet::download(MPS_TARGETS, &client, true)?;
+        let methods = VocabSet::download(MPS_METHODS, &client, true)?;
+        let locations = VocabSet::download(MPS_LOCATIONS, &client, false)?;
+        let units = VocabSet::download(MPS_UNITS, &client, true)?;
+        let chips = VocabSet::from_csv(chips, "Name", true)?;
+
+        Ok(Self {targets, methods, locations, units, chips })
     }
 }
 
 impl VocabSet {
-    fn create(p: &Path, col: &str, case_sensitive: bool) -> Result<Self, VocabError> {
+    fn from_csv(p: &Path, col: &str, case_sensitive: bool) -> Result<Self, VocabError> {
         use VocabError::*;
 
         let mut rdr = csv::Reader::from_path(p).map_err(|e| OpeningVocab(pstr(p), e))?;
@@ -129,6 +69,27 @@ impl VocabSet {
             case_sensitive,
         })
     }
+
+    pub fn download(url: &str, client: &Client, case_sensitive: bool) -> Result<Self, VocabError> {
+        let info: Vec<ComponentInfo> = client.get(url).send()?.json()?;
+
+        let values = info.into_iter()
+            .map(|ComponentInfo { name, .. }| {
+                if case_sensitive {
+                    name.into_boxed_str()
+                } else {
+                    name.to_lowercase().into_boxed_str()
+                }
+            }).collect();
+
+        Ok(Self { values, case_sensitive} )
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct ComponentInfo {
+    id: usize,
+    name: String,
 }
 
 fn pstr<P: AsRef<Path>>(p: P) -> String {
@@ -143,10 +104,18 @@ pub enum VocabError {
     MissingColumn(String, String),
     #[fail(display = "vocab processing csv error")]
     Csv(#[fail(cause)] csv::Error),
+    #[fail(display = "issue download MPS-Db data")]
+    Req(#[fail(cause)] reqwest::Error),
 }
 
 impl From<csv::Error> for VocabError {
     fn from(e: csv::Error) -> Self {
         VocabError::Csv(e)
+    }
+}
+
+impl From<reqwest::Error> for VocabError {
+    fn from(e: reqwest::Error) -> Self {
+        Self::Req(e)
     }
 }
