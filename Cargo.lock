@@ -570,7 +570,6 @@ dependencies = [
  "calamine 0.16.2",
  "chrono",
  "csv",
- "errlog",
  "flexi_logger",
  "log",
  "reqwest",
