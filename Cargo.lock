@@ -564,7 +564,7 @@ dependencies = [
 
 [[package]]
 name = "imgqc"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "calamine 0.16.2",

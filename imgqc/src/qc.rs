@@ -162,7 +162,7 @@ fn make_checker<'m>(
 
         if !allowed_vocab.values.contains(value) {
             Some(format!(
-                "* row {} field \"{}\" is not in MPS: {}",
+                r#"* row {} field "{}" is not in MPS: "{}""#,
                 i + 2,
                 col_name,
                 value
@@ -182,7 +182,7 @@ fn check_image(i: usize, img: &Path) -> Option<String> {
             &img.display()
         )
     };
-    let file_err = |i| format!("* row {} image path is not a file: {}", i, &img.display());
+    let file_err = |i| format!("* row {} image path is not a file: '{}'", i, &img.display());
 
     std::fs::metadata(&img)
         .map_err(|e| find_err(i + 2, e))
